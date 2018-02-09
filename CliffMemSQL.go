@@ -207,11 +207,12 @@ func (this *ST_MemTable) DeleteRow(whereMap map[string]interface{}) (bool, error
 	this.rowCnt -= cnt
 	return true, nil
 }
+//inCnt:-1 获取全部行数据
 func (this *ST_MemTable) GetRows(inStart int, inCnt int) (tf bool, effectRows int, outmap []st_MemTable_Row, err error) {
 	if this == nil {
 		return false, 0, nil, errors.New("pT is null")
 	}
-	if inStart < 0 || inStart >= this.rowCnt {
+	if inStart < 0 || (inStart >= this.rowCnt && this.rowCnt > 0) {
 		return false, 0, nil, errors.New("inStart out of range")
 	}
 	if inCnt < 0 && inCnt != -1 {
