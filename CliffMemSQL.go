@@ -4,16 +4,18 @@ import (
 	"errors"
 	"reflect"
 	"strings"
+	"sort"
 )
 
 //连表查询导致数据库资源被占用，其他服务可能变慢，需要将查询语句根据索引拆分，把数据计算放到本地，
 //需求：一个查表数据内存映射
 
 type ST_MemTable struct {
-	memTable    []st_MemTable_Row
-	colNameType map[string]string
-	rowCnt      int //行数
-	colCnt      int //列数
+	memTable     []st_MemTable_Row
+	colNameType  map[string]string
+	rowCnt       int //行数
+	colCnt       int //列数
+	colNameOrder string
 }
 type st_MemTable_Row map[string]interface{}
 
@@ -207,6 +209,7 @@ func (this *ST_MemTable) DeleteRow(whereMap map[string]interface{}) (bool, error
 	this.rowCnt -= cnt
 	return true, nil
 }
+
 //inCnt:-1 获取全部行数据
 func (this *ST_MemTable) GetRows(inStart int, inCnt int) (tf bool, effectRows int, outmap []st_MemTable_Row, err error) {
 	if this == nil {
@@ -394,4 +397,44 @@ func (this *ST_MemTable) LeftJoin(pT2 *ST_MemTable, whereColNameEqual map[string
 		}
 	}
 	return retPT, retPT.rowCnt
+}
+
+//对表进行关键列排序，目前只支持int类型，后续加入时间排序
+func (this *ST_MemTable) Sort_ASC(ColName string) {
+	this.colNameOrder = ColName
+	if !sort.IsSorted(this) {
+		sort.Sort(this)
+	}
+}
+func (this *ST_MemTable) Sort_DESC(ColName string) {
+	this.colNameOrder = ColName
+	if !sort.IsSorted(this) {
+		sort.Sort(this)
+	}
+	i := 0
+	j := this.rowCnt-1
+	for i<j{
+		this.memTable[i],this.memTable[j] = this.memTable[j],this.memTable[i]
+		i++
+		j--
+	}
+
+
+}
+func (this *ST_MemTable) Len() int {
+	return this.rowCnt
+}
+func (this *ST_MemTable) Less(i, j int) bool {
+	_, _, outmap1, err := this.GetRows(i, 1)
+	if err != nil {
+		return false
+	}
+	_, _, outmap2, err := this.GetRows(j, 1)
+	if err != nil {
+		return false
+	}
+	return outmap1[0].GetInt(this.colNameOrder) < outmap2[0].GetInt(this.colNameOrder)
+}
+func (this *ST_MemTable) Swap(i, j int) {
+	this.memTable[i], this.memTable[j] = this.memTable[j], this.memTable[i]
 }
