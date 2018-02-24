@@ -14,6 +14,13 @@ func TestMyMemSQL(){
 	colNameType["countx"] = "int"
 	pT := CliffMemSQL.NewMemTable(colNameType)
 
+	colNameType2 := make(map[string]string)
+	colNameType2["hello2"] = "string"
+	colNameType2["nihao2"] = "string"
+	colNameType2["dajiahao2"] = "string"
+	colNameType2["countx"] = "int"
+	pT2 := CliffMemSQL.NewMemTable(colNameType2)
+
 	insertRowTmp := make(map[string]interface{})
 	insertRowTmp["hello"]="a"
 	insertRowTmp["nihao"]= "b"
@@ -31,25 +38,19 @@ func TestMyMemSQL(){
 	insertRowTmp["countx"]=10
 	pT.InsertRow(insertRowTmp)
 
-	pT.Sort_DESC("countx")
-	fmt.Println(pT)
-	pT.Sort_ASC("countx")
-	fmt.Println(pT)
-	//setRowTmp := make(map[string]interface{})
-	//setRowTmp["hello"]="ab"
-	//whereRowTmp := make(map[string]interface{})
-	//whereRowTmp["nihao"]="b"
-	//pT.UpdateRow(setRowTmp,whereRowTmp)
-	//fmt.Println(pT)
-	//pT.DeleteRow(whereRowTmp)
-	//fmt.Println(pT)
-	//
-	//
-	//pT.DeleteRow(whereRowTmp)
-	//fmt.Println(pT)
-	//
-	//fmt.Println(pT.GetRows(0,2))
-	//fmt.Println(pT.QueryRowsLike(whereRowTmp))
+	insertRowTmp2 := make(map[string]interface{})
+	insertRowTmp2["hello2"]="a2"
+	insertRowTmp2["nihao2"]= "b2"
+	insertRowTmp2["dajiahao2"]="c2"
+	insertRowTmp2["countx"]=3
+	pT2.InsertRow(insertRowTmp2)
+
+	where :=make(map[string]string)
+	where["countx"]="countx"
+	pT3,_ := pT.LeftJoin(pT2,where)
+	_,_,x,_ :=pT3.GetRows(0,-1)
+	fmt.Println(x)
+
 }
 
 func main() {

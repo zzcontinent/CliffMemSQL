@@ -27,10 +27,10 @@ func (this st_MemTable_Row) GetInt(inParam string) (int) {
 		case float64:
 			return int(this[inParam].(float64))
 		default:
-			return -9999
+			return 0
 		}
 	} else {
-		return -9999
+		return 0
 	}
 }
 func (this st_MemTable_Row) GetInt64(inParam string) (int64) {
@@ -41,10 +41,10 @@ func (this st_MemTable_Row) GetInt64(inParam string) (int64) {
 		case float64:
 			return int64(this[inParam].(float64))
 		default:
-			return -9999
+			return 0
 		}
 	} else {
-		return -9999
+		return 0
 	}
 }
 func (this st_MemTable_Row) GetString(inParam string) (string) {
@@ -265,6 +265,26 @@ func (this *ST_MemTable) GetCols(inColName []string) (tf bool, outmap []map[stri
 	}
 	return true, retList, nil
 }
+func (this *ST_MemTable) GetColsOne(inColName string) ([]map[string]interface{}, error) {
+	if this == nil {
+		return nil, errors.New("pT is null")
+	}
+	if !this.CheckColNameExist(inColName) {
+		return nil, errors.New("没有列名:" + inColName)
+	}
+
+	//获取
+	retList := make([]map[string]interface{}, 0)
+	retListOne := make(map[string]interface{})
+	for _, valRowMap := range this.memTable {
+		if valRowMap.GetInt("m_ValidStatus") == 1 {
+			retListOne[inColName] = valRowMap[inColName]
+		}
+		retList = append(retList, retListOne)
+	}
+	return retList, nil
+}
+
 func (this *ST_MemTable) QueryRows(whereMap map[string]interface{}) (posRow []int, total int, outMap []map[string]interface{}, err error) {
 	if this == nil {
 		return nil, 0, nil, errors.New("pT is null")
@@ -363,7 +383,6 @@ func (this *ST_MemTable) Join(pT2 *ST_MemTable, whereColNameEqual map[string]str
 }
 func (this *ST_MemTable) LeftJoin(pT2 *ST_MemTable, whereColNameEqual map[string]string) (outPT *ST_MemTable, effectRows int) {
 	joinMapNameType := make(map[string]string)
-	joinMapRow := make(map[string]interface{})
 	for key, val := range this.colNameType {
 		joinMapNameType[key] = val
 	}
@@ -373,6 +392,7 @@ func (this *ST_MemTable) LeftJoin(pT2 *ST_MemTable, whereColNameEqual map[string
 	retPT := NewMemTable(joinMapNameType)
 	//n^2匹配
 	for _, valMap1 := range this.memTable {
+		joinMapRow := make(map[string]interface{})
 		for key1, val1 := range valMap1 {
 			joinMapRow[key1] = val1
 		}
@@ -412,13 +432,12 @@ func (this *ST_MemTable) Sort_DESC(ColName string) {
 		sort.Sort(this)
 	}
 	i := 0
-	j := this.rowCnt-1
-	for i<j{
-		this.memTable[i],this.memTable[j] = this.memTable[j],this.memTable[i]
+	j := this.rowCnt - 1
+	for i < j {
+		this.memTable[i], this.memTable[j] = this.memTable[j], this.memTable[i]
 		i++
 		j--
 	}
-
 
 }
 func (this *ST_MemTable) Len() int {
@@ -437,4 +456,26 @@ func (this *ST_MemTable) Less(i, j int) bool {
 }
 func (this *ST_MemTable) Swap(i, j int) {
 	this.memTable[i], this.memTable[j] = this.memTable[j], this.memTable[i]
+}
+
+
+
+//数组去重算法
+func Rm_duplicate(list []interface{}) []interface{} {
+	x := make([]interface{},0)
+	for _, i := range list {
+		if len(x) == 0 {
+			x = append(x, i)
+		} else {
+			for k, v := range x {
+				if i == v {
+					break
+				}
+				if k == len(x)-1 {
+					x = append(x, i)
+				}
+			}
+		}
+	}
+	return x
 }
