@@ -419,6 +419,29 @@ func (this *ST_MemTable) LeftJoin(pT2 *ST_MemTable, whereColNameEqual map[string
 	return retPT, retPT.rowCnt
 }
 
+//对表行 关键字去重
+func (this *ST_MemTable) GroupBy_Limit1st(colName string) (error) {
+	if !this.CheckColNameExist(colName) {
+		return errors.New("GroupBy_Limit1:" + "找不到对应列(" + colName + ")")
+	}
+	cnt, _ := this.GetRowCount()
+	j := cnt - 1
+	//从后向前 删除重复数据
+	for j >= 0 {
+		for i, TableRow := range this.memTable {
+			if TableRow["m_ValidStatus"] == 1 {
+				if i < j {
+					if TableRow.GetVal(colName)==this.memTable[j].GetVal(colName){
+						this.memTable[j].SetVal("m_ValidStatus",-1)
+					}
+				}
+			}
+		}
+		j--
+	}
+	return nil
+}
+
 //对表进行关键列排序，目前只支持int类型，后续加入时间排序
 func (this *ST_MemTable) Sort_ASC(ColName string) {
 	this.colNameOrder = ColName
@@ -458,11 +481,9 @@ func (this *ST_MemTable) Swap(i, j int) {
 	this.memTable[i], this.memTable[j] = this.memTable[j], this.memTable[i]
 }
 
-
-
 //数组去重算法
 func Rm_duplicate(list []interface{}) []interface{} {
-	x := make([]interface{},0)
+	x := make([]interface{}, 0)
 	for _, i := range list {
 		if len(x) == 0 {
 			x = append(x, i)
