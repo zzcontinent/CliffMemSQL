@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strings"
 	"sort"
+	"strconv"
 )
 
 //连表查询导致数据库资源被占用，其他服务可能变慢，需要将查询语句根据索引拆分，把数据计算放到本地，
@@ -431,8 +432,35 @@ func (this *ST_MemTable) GroupBy_Limit1st(colName string) (error) {
 		for i, TableRow := range this.memTable {
 			if TableRow["m_ValidStatus"] == 1 {
 				if i < j {
-					if TableRow.GetVal(colName)==this.memTable[j].GetVal(colName){
-						this.memTable[j].SetVal("m_ValidStatus",-1)
+					if TableRow.GetVal(colName) == this.memTable[j].GetVal(colName) {
+						this.memTable[j].SetVal("m_ValidStatus", -1)
+					}
+				}
+			}
+		}
+		j--
+	}
+	return nil
+}
+
+//对表
+func (this *ST_MemTable) GroupBy(colName string) (error) {
+	if !this.CheckColNameExist(colName) {
+		return errors.New("GroupBy_Limit1:" + "找不到对应列(" + colName + ")")
+	}
+	cnt, _ := this.GetRowCount()
+	j := cnt - 1
+	//从后向前 删除重复数据
+	for j >= 0 {
+		for i, TableRow := range this.memTable {
+			if TableRow["m_ValidStatus"] == 1 {
+				if i < j {
+					if TableRow.GetVal(colName) == this.memTable[j].GetVal(colName) {
+						this.memTable[j].SetVal("m_ValidStatus", -1)
+						for key,_ := range this.colNameType{
+							this.colNameType[key]="string"
+						}
+
 					}
 				}
 			}
@@ -499,4 +527,91 @@ func Rm_duplicate(list []interface{}) []interface{} {
 		}
 	}
 	return x
+}
+
+func ReplacedBySlice(in1 string, in2 []string) string {
+	for _, val := range in2 {
+		in1 = strings.Replace(in1, "?", val, 1)
+	}
+	return in1
+}
+
+func StringToSlice_Int(in1 string, interval string) ([]int, error) {
+	outSliceStr := strings.Split(in1, interval)
+	outSliceInt := make([]int, len(outSliceStr))
+	var err error
+	for i, val := range outSliceStr {
+		outSliceInt[i], err = strconv.Atoi(val)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return outSliceInt, nil
+}
+func StringToSlice_String(in1 string, interval string) ([]string) {
+	return strings.Split(in1, interval)
+}
+
+//数组一致内容
+func SliceSame(in1 []interface{}, in2 []interface{}) ([]interface{}) {
+	outSame := make([]interface{}, 0)
+	for _, val1 := range in1 {
+		for _, val2 := range in2 {
+			if val1 == val2 {
+				outSame = append(outSame, val1)
+			}
+		}
+	}
+	return Rm_duplicate(outSame)
+}
+
+//数组不同内容
+func SliceDiff(in1 []interface{}, in2 []interface{}) ([]interface{}) {
+	outDiff := make([]interface{}, 0)
+	for _, val1 := range in1 {
+		for _, val2 := range in2 {
+			if val1 != val2 {
+				outDiff = append(outDiff, val1)
+			}
+		}
+	}
+	for _, val2 := range in2 {
+		for _, val1 := range in1 {
+			if val1 != val2 {
+				outDiff = append(outDiff, val2)
+			}
+		}
+	}
+	return Rm_duplicate(outDiff)
+}
+
+//加入Sort函数
+type SortStruct struct {
+	slice []interface{}
+}
+
+func (this *SortStruct) Sort_ASC() {
+	if !sort.IsSorted(this) {
+		sort.Sort(this)
+	}
+}
+func (this *SortStruct) Sort_DESC() {
+	this.Sort_ASC()
+	i := 0
+	j := len(this.slice) - 1
+	for i < j {
+		this.Swap(i, j)
+		i++
+		j--
+	}
+}
+func (this *SortStruct) Len() int {
+	return len(this.slice)
+}
+func (this *SortStruct) Swap(i, j int) {
+	this.slice[i], this.slice[j] = this.slice[j], this.slice[i]
+}
+func (this *SortStruct) Less(i, j int) bool {
+
+	return true
 }
