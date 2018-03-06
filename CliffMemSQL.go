@@ -444,26 +444,48 @@ func (this *ST_MemTable) GroupBy_Limit1st(colName string) (error) {
 	return nil
 }
 
-//对表
+//对表合并操作，需要重新创建表格，表的列属性全部变成string
 func (this *ST_MemTable) GroupBy(colName string) (error) {
 	if !this.CheckColNameExist(colName) {
-		return errors.New("GroupBy_Limit1:" + "找不到对应列(" + colName + ")")
+		return errors.New("GroupBy:" + "找不到对应列(" + colName + ")")
 	}
 	cnt, _ := this.GetRowCount()
-	j := cnt - 1
-	//从后向前 删除重复数据
-	for j >= 0 {
-		for i, TableRow := range this.memTable {
-			if TableRow["m_ValidStatus"] == 1 {
-				if i < j {
-					if TableRow.GetVal(colName) == this.memTable[j].GetVal(colName) {
-						this.memTable[j].SetVal("m_ValidStatus", -1)
+	i := 0
+	//从前往后，合并组数据
+	for i < cnt {
+		if this.memTable[i].GetInt("m_ValidStatus") == 1 {
+			foundRow := make([]st_MemTable_Row, 0)
+			foundRow = append(foundRow, this.memTable[i])
+			for j, _ := range this.memTable {
+				if this.memTable[j]["m_ValidStatus"] == 1 {
+					if j > i {
+						if this.memTable[i].GetVal(colName) == this.memTable[j].GetVal(colName) {
+							foundRow = append(foundRow, this.memTable[j])
+							this.memTable[j].SetVal("m_ValidStatus", -1)
+							this.rowCnt--
+						}
 					}
 				}
 			}
+			//对i的行进行合并，以字符串+，方式拼接
+			mapSlice := make(map[string][]interface{})
+			for _,rowMap := range foundRow{
+				for key,val := range rowMap{
+					mapSlice[key] = append(mapSlice[key],val)
+				}
+			}
+			for key,slice := range mapSlice{
+				this.memTable[i].SetVal(key,SliceToString(slice,","))
+			}
+			this.memTable[i].SetVal("m_ValidStatus",1)
 		}
-		j--
+		i++
 	}
+	//对列格式作调整
+	for key, _ := range this.colNameType {
+		this.colNameType[key] = "string"
+	}
+	this.colNameType["m_ValidStatus"] = "int"
 	return nil
 }
 
@@ -576,13 +598,13 @@ func SliceSame(in1 []interface{}, in2 []interface{}) ([]interface{}) {
 	outSame := make([]interface{}, 0)
 	flagFound := 0
 	for _, val1 := range in1 {
-		flagFound=0
+		flagFound = 0
 		for _, val2 := range in2 {
 			if val1 == val2 {
 				flagFound ++
 			}
 		}
-		if flagFound > 0{
+		if flagFound > 0 {
 			outSame = append(outSame, val1)
 		}
 	}
@@ -592,27 +614,27 @@ func SliceSame(in1 []interface{}, in2 []interface{}) ([]interface{}) {
 //数组不同内容A+B
 func SliceDiff(in1 []interface{}, in2 []interface{}) ([]interface{}) {
 	outDiff := make([]interface{}, 0)
-	flagFound :=0
+	flagFound := 0
 	for _, val1 := range in1 {
-		flagFound=0
+		flagFound = 0
 		for _, val2 := range in2 {
 			if val1 == val2 {
 				flagFound++
 			}
 		}
-		if flagFound == 0{
+		if flagFound == 0 {
 			outDiff = append(outDiff, val1)
 		}
 	}
 	for _, val2 := range in2 {
-		flagFound=0
+		flagFound = 0
 		for _, val1 := range in1 {
 			if val1 == val2 {
 				flagFound++
 
 			}
 		}
-		if flagFound==0{
+		if flagFound == 0 {
 			outDiff = append(outDiff, val2)
 		}
 	}
@@ -622,28 +644,28 @@ func SliceDiff(in1 []interface{}, in2 []interface{}) ([]interface{}) {
 //数组不同内容A-B
 func SliceDiffFromA(in1 []interface{}, in2 []interface{}) ([]interface{}) {
 	outDiff := make([]interface{}, 0)
-	flagFound :=0
+	flagFound := 0
 	for _, val1 := range in1 {
-		flagFound=0
+		flagFound = 0
 		for _, val2 := range in2 {
 			if val1 == val2 {
 				flagFound++
 			}
 		}
-		if flagFound == 0{
+		if flagFound == 0 {
 			outDiff = append(outDiff, val1)
 		}
 	}
 	return Rm_duplicate(outDiff)
 }
 
-
 //对interface{}提取相应数据类型
 type stMyInterfaceConv struct{}
+
 var CGetInterface stMyInterfaceConv
 //从interface{}进行类型转换；因为强制类型转换会导致panic，转换前要加类型判断
-func (stMyInterfaceConv)GetInt(in interface{}) int{
-	switch in.(type){
+func (stMyInterfaceConv) GetInt(in interface{}) int {
+	switch in.(type) {
 	case int:
 		return in.(int)
 	case int64:
@@ -658,8 +680,8 @@ func (stMyInterfaceConv)GetInt(in interface{}) int{
 		return 0
 	}
 }
-func (stMyInterfaceConv)GetInt64(in interface{}) int64{
-	switch in.(type){
+func (stMyInterfaceConv) GetInt64(in interface{}) int64 {
+	switch in.(type) {
 	case int:
 		return int64(in.(int))
 	case int64:
@@ -674,8 +696,8 @@ func (stMyInterfaceConv)GetInt64(in interface{}) int64{
 		return 0
 	}
 }
-func (stMyInterfaceConv)GetString(in interface{}) string{
-	switch in.(type){
+func (stMyInterfaceConv) GetString(in interface{}) string {
+	switch in.(type) {
 	case int:
 		return ""
 	case int64:
@@ -691,11 +713,11 @@ func (stMyInterfaceConv)GetString(in interface{}) string{
 	}
 }
 
-
 //加入Sort函数
 type SortStruct struct {
 	slice []interface{}
 }
+
 func (this *SortStruct) Sort_ASC() {
 	if !sort.IsSorted(this) {
 		sort.Sort(this)
@@ -706,7 +728,7 @@ func (this *SortStruct) Sort_DESC() {
 	i := 0
 	j := len(this.slice) - 1
 	for i < j {
-		this.Swap(i,j)
+		this.Swap(i, j)
 		i++
 		j--
 	}
