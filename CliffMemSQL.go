@@ -713,34 +713,81 @@ func (stMyInterfaceConv) GetString(in interface{}) string {
 	}
 }
 
-//加入Sort函数
-type SortStruct struct {
-	slice []interface{}
-}
-
-func (this *SortStruct) Sort_ASC() {
+//加入Sort函数,比较数字大小
+type SortSliceInt []int
+func (this SortSliceInt) Sort_ASC() {
 	if !sort.IsSorted(this) {
 		sort.Sort(this)
 	}
 }
-func (this *SortStruct) Sort_DESC() {
+func (this SortSliceInt) Sort_DESC() {
 	this.Sort_ASC()
 	i := 0
-	j := len(this.slice) - 1
+	j := len(this) - 1
 	for i < j {
 		this.Swap(i, j)
 		i++
 		j--
 	}
 }
-func (this *SortStruct) Len() int {
-	return len(this.slice)
+func (this SortSliceInt) Len() int {
+	return len(this)
 }
-func (this *SortStruct) Swap(i, j int) {
-	this.slice[i], this.slice[j] = this.slice[j], this.slice[i]
+func (this SortSliceInt) Swap(i, j int) {
+	this[i], this[j] = this[j], this[i]
+}
+func (this SortSliceInt) Less(i, j int) bool {
+	return this[i] < this[j]
 }
 
-func (this *SortStruct) Less(i, j int) bool {
+type SortSliceInt64 []int64
+func (this SortSliceInt64) Sort_ASC() {
+	if !sort.IsSorted(this) {
+		sort.Sort(this)
+	}
+}
+func (this SortSliceInt64) Sort_DESC() {
+	this.Sort_ASC()
+	i := 0
+	j := len(this) - 1
+	for i < j {
+		this.Swap(i, j)
+		i++
+		j--
+	}
+}
+func (this SortSliceInt64) Len() int {
+	return len(this)
+}
+func (this SortSliceInt64) Swap(i, j int) {
+	this[i], this[j] = this[j], this[i]
+}
+func (this SortSliceInt64) Less(i, j int) bool {
+	return this[i] < this[j]
+}
 
-	return true
+type SortSlicefloat32 []float32
+func (this SortSlicefloat32) Sort_ASC() {
+	if !sort.IsSorted(this) {
+		sort.Sort(this)
+	}
+}
+func (this SortSlicefloat32) Sort_DESC() {
+	this.Sort_ASC()
+	i := 0
+	j := len(this) - 1
+	for i < j {
+		this.Swap(i, j)
+		i++
+		j--
+	}
+}
+func (this SortSlicefloat32) Len() int {
+	return len(this)
+}
+func (this SortSlicefloat32) Swap(i, j int) {
+	this[i], this[j] = this[j], this[i]
+}
+func (this SortSlicefloat32) Less(i, j int) bool {
+	return this[i] < this[j]
 }
