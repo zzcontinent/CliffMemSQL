@@ -59,6 +59,24 @@ func (this st_MemTable_Row) GetString(inParam string) (string) {
 		return ""
 	}
 }
+func (this st_MemTable_Row) GetValToString(inParam string) (string) {
+	if this != nil {
+		switch this[inParam].(type) {
+		case string:
+			return this[inParam].(string)
+		case int:
+			return strconv.Itoa(this[inParam].(int))
+		case int64:
+			return strconv.FormatInt(this[inParam].(int64),10)
+		case float64:
+			return strconv.FormatFloat(this[inParam].(float64),'f',0,0)
+		default:
+			return ""
+		}
+	} else {
+		return ""
+	}
+}
 func (this st_MemTable_Row) GetVal(inParam string) (interface{}) {
 	if this != nil {
 		return this[inParam]
@@ -126,21 +144,21 @@ func (this *ST_MemTable) GetRowCount_Total() (int) {
 	}
 	return len(this.memTable)
 }
-func (this *ST_MemTable) GetColCount() (int, error) {
+func (this *ST_MemTable) GetColCount() (int) {
 	if this == nil {
-		return 0, errors.New("pT is null")
+		return 0
 	}
-	return len(this.colNameType), nil
+	return len(this.colNameType)
 }
-func (this *ST_MemTable) GetColNames() ([]string, error) {
+func (this *ST_MemTable) GetColNames() ([]string) {
 	if this == nil {
-		return nil, errors.New("pT is null")
+		return nil
 	}
 	retStr := make([]string, 0)
 	for key, _ := range this.colNameType {
 		retStr = append(retStr, key)
 	}
-	return retStr, nil
+	return retStr
 }
 func (this *ST_MemTable) UpdateRow(setRow map[string]interface{}, whereRow map[string]interface{}) (tf bool, effectRows int, err error) {
 	if this == nil {
@@ -263,8 +281,8 @@ func (this *ST_MemTable) GetCols(inColName []string) (tf bool, outmap []map[stri
 	}
 	//获取
 	retList := make([]map[string]interface{}, 0)
-	retListOne := make(map[string]interface{})
 	for _, valRowMap := range this.memTable {
+		retListOne := make(map[string]interface{})
 		for _, inVal := range inColName {
 			if valRowMap.GetInt("m_ValidStatus") == 1 {
 				retListOne[inVal] = valRowMap[inVal]
@@ -470,6 +488,7 @@ func (this *ST_MemTable) GroupBy(colName string) (error) {
 	//从前往后，合并组数据
 	for i < cnt {
 		if this.memTable[i].GetInt("m_ValidStatus") == 1 {
+			colValue := this.memTable[i].GetVal(colName)//用于填补group by ，保留一个值
 			foundRow := make([]st_MemTable_Row, 0)
 			foundRow = append(foundRow, this.memTable[i])
 			for j, _ := range this.memTable {
@@ -494,6 +513,7 @@ func (this *ST_MemTable) GroupBy(colName string) (error) {
 			}
 			this.memTable[i].SetVal("m_ValidStatus", 1)
 			this.memTable[i].SetVal("m_Count", len(foundRow))
+			this.memTable[i].SetVal(colName, colValue)
 		}
 		i++
 	}
@@ -505,6 +525,30 @@ func (this *ST_MemTable) GroupBy(colName string) (error) {
 	this.colNameType["m_Count"] = "int"
 	return nil
 }
+
+//Cliff 打印表结构到log中
+func (this *ST_MemTable) PrintTable() ([]string){
+	outStringList := make([]string,0)
+	outStringListOne := ""
+	colName := make([]string,0)
+	for key,_ := range this.colNameType{
+		outStringListOne += (" | " + key)
+		colName = append(colName,key)
+	}
+	outStringList = append(outStringList,outStringListOne)
+	for _,val := range this.memTable{
+		outStringListOne := ""
+		for _,key := range colName{
+			outStringListOne +=(" | " + val.GetValToString(key))
+			if val.GetValToString(key) == ""{
+				outStringListOne += "null"
+			}
+		}
+		outStringList = append(outStringList,outStringListOne)
+	}
+	return outStringList
+}
+
 
 //对表进行关键列排序，目前只支持int类型，后续加入时间排序
 func (this *ST_MemTable) Sort_ASC(ColName string) {
