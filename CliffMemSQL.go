@@ -11,10 +11,13 @@ import (
 //连表查询导致数据库资源被占用，其他服务可能变慢，需要将查询语句根据索引拆分，把数据计算放到本地，
 //需求：一个查表数据内存映射
 
+const printMaxLen = 100
+
 type ST_MemTable struct {
-	memTable     []st_MemTable_Row
-	colNameType  map[string]string
-	colNameOrder string
+	memTable      []st_MemTable_Row
+	colNameType   map[string]string
+	colNameRemark map[string]string
+	colNameOrder  string
 }
 type st_MemTable_Row map[string]interface{}
 
@@ -67,9 +70,9 @@ func (this st_MemTable_Row) GetValToString(inParam string) (string) {
 		case int:
 			return strconv.Itoa(this[inParam].(int))
 		case int64:
-			return strconv.FormatInt(this[inParam].(int64),10)
+			return strconv.FormatInt(this[inParam].(int64), 10)
 		case float64:
-			return strconv.FormatFloat(this[inParam].(float64),'f',0,0)
+			return strconv.FormatFloat(this[inParam].(float64), 'f', 0, 0)
 		default:
 			return ""
 		}
@@ -113,6 +116,7 @@ func NewMemTable(colNameType map[string]string) *ST_MemTable {
 	pMemTable.memTable = make([]st_MemTable_Row, 0)
 	pMemTable.colNameType = colNameType
 	pMemTable.colNameType["m_ValidStatus"] = "int" //用于判断该行是否有效，内部维护
+	pMemTable.colNameRemark = make(map[string]string)
 	return pMemTable
 }
 
@@ -121,6 +125,24 @@ func (this *ST_MemTable) GetColType(colName string) (string, error) {
 		return "", errors.New("pT is null")
 	}
 	return this.getColType(colName), nil
+}
+
+func (this *ST_MemTable) AddRemark(colName string, remark string) {
+	if this == nil {
+		return
+	}
+	if _, ok := this.colNameType[colName]; ok {
+		tmpRemark := strings.Join(strings.Split(remark, "\n"), " ")
+		tmpRemark2 := strings.Join(strings.Split(tmpRemark, "\t"), "")
+		this.colNameRemark[colName] = tmpRemark2
+	}
+	return
+}
+func (this *ST_MemTable) GetRemark(colName string) string {
+	if this == nil {
+		return ""
+	}
+	return this.colNameRemark[colName]
 }
 
 //获取表格有效行数
@@ -377,13 +399,20 @@ func (this *ST_MemTable) AddColName(colNameType map[string]string) (bool, error)
 //pT1 join pT2
 func (this *ST_MemTable) Join(pT2 *ST_MemTable, whereColNameEqual map[string]string) (outPT *ST_MemTable, effectRows int) {
 	joinMapNameType := make(map[string]string)
+	joinRemark := make(map[string]string)
 	for key, val := range this.colNameType {
 		joinMapNameType[key] = val
+		joinRemark[key] = this.colNameRemark[key]
 	}
 	for key, val := range pT2.colNameType {
 		joinMapNameType[key] = val
+		joinRemark[key] = pT2.colNameRemark[key]
 	}
 	retPT := NewMemTable(joinMapNameType)
+	//备注加入
+	for key, val := range joinRemark {
+		retPT.AddRemark(key, val)
+	}
 	//n^2匹配
 	for _, valMap1 := range this.memTable {
 		if valMap1.GetVal("m_ValidStatus") == 1 {
@@ -413,13 +442,19 @@ func (this *ST_MemTable) Join(pT2 *ST_MemTable, whereColNameEqual map[string]str
 }
 func (this *ST_MemTable) LeftJoin(pT2 *ST_MemTable, whereColNameEqual map[string]string) (outPT *ST_MemTable, effectRows int) {
 	joinMapNameType := make(map[string]string)
+	joinRemark := make(map[string]string)
 	for key, val := range this.colNameType {
 		joinMapNameType[key] = val
+		joinRemark[key] = this.colNameRemark[key]
 	}
 	for key, val := range pT2.colNameType {
 		joinMapNameType[key] = val
+		joinRemark[key] = pT2.colNameRemark[key]
 	}
 	retPT := NewMemTable(joinMapNameType)
+	for key, val := range joinRemark {
+		retPT.AddRemark(key, val)
+	}
 	//n^2匹配
 	for _, valMap1 := range this.memTable {
 		if valMap1.GetVal("m_ValidStatus") == 1 {
@@ -488,7 +523,7 @@ func (this *ST_MemTable) GroupBy(colName string) (error) {
 	//从前往后，合并组数据
 	for i < cnt {
 		if this.memTable[i].GetInt("m_ValidStatus") == 1 {
-			colValue := this.memTable[i].GetVal(colName)//用于填补group by ，保留一个值
+			colValue := this.memTable[i].GetVal(colName) //用于填补group by ，保留一个值
 			foundRow := make([]st_MemTable_Row, 0)
 			foundRow = append(foundRow, this.memTable[i])
 			for j, _ := range this.memTable {
@@ -526,29 +561,155 @@ func (this *ST_MemTable) GroupBy(colName string) (error) {
 	return nil
 }
 
-//Cliff 打印表结构到log中
-func (this *ST_MemTable) PrintTable() ([]string){
-	outStringList := make([]string,0)
-	outStringListOne := ""
-	colName := make([]string,0)
-	for key,_ := range this.colNameType{
-		outStringListOne += (" | " + key)
-		colName = append(colName,key)
+//获取非等宽字体 打印宽度
+func StringPrintWidth(in string) int {
+	outLen := 0
+	for _, val := range (in) {
+		//占用1个字节宽度
+		//if unicode.Is(unicode.Scripts["Han"], val) {
+		if val > 255 {
+			outLen += 2
+		} else {
+			outLen += 1
+		}
 	}
-	outStringList = append(outStringList,outStringListOne)
-	for _,val := range this.memTable{
-		outStringListOne := ""
-		for _,key := range colName{
-			outStringListOne +=(" | " + val.GetValToString(key))
-			if val.GetValToString(key) == ""{
-				outStringListOne += "null"
+	return outLen
+}
+
+//Cliff 打印表结构到log中
+func FormatColString(inString string, lenMax8 int) string {
+	right := lenMax8 - StringPrintWidth(inString)
+	if right > 0 { //对齐显示
+		for right > 0 {
+			inString += " "
+			right--
+		}
+	} else if right < 0 { //截断超出显示部分
+		for right < 0 {
+			len2 := len(inString)
+			if len2 > 0 {
+				inString = inString[:len2-1]
+			} else {
+				break
+			}
+			right = lenMax8 - StringPrintWidth(inString)
+		}
+		if right > 0 {
+			for ; right > 0; right-- {
+				inString += " "
 			}
 		}
-		outStringList = append(outStringList,outStringListOne)
+	}
+	return inString
+}
+func (this *ST_MemTable) PrintTable() ([]string) {
+	outStringList := make([]string, 0)
+	outStringListOne := "" //头
+	colNameOrder := SortSliceString{}
+	colLen8 := make(map[string]int)
+	for key, _ := range this.colNameType {
+		colNameOrder = append(colNameOrder, key)
+	}
+	colNameOrder.Sort_ASC()
+	//获取每列最大长度
+	for _, colName := range colNameOrder {
+		oneColString := (" | " + colName + "(" + this.colNameType[colName] + ")")
+		lenTmp1 := StringPrintWidth(oneColString)
+		if lenTmp1 > colLen8[colName] {
+			colLen8[colName] = lenTmp1
+		}
+		for _, val := range this.memTable {
+			lenTmp := StringPrintWidth(" | " + val.GetValToString(colName))
+			if lenTmp > colLen8[colName] {
+				colLen8[colName] = lenTmp
+			}
+		}
+		if colLen8[colName] > printMaxLen {
+			colLen8[colName] = printMaxLen
+		}
+	}
+
+	//打印头
+	outStringListOne += "字段"
+	for _, colNameVal := range colNameOrder {
+		oneColString2 := (" | " + colNameVal + "(" + this.colNameType[colNameVal] + ")")
+		outStringListOne += FormatColString(oneColString2, colLen8[colNameVal])
+	}
+	outStringList = append(outStringList, outStringListOne)
+
+	//打印主体
+	for _, val := range this.memTable {
+		outStringListOne_tmp := "内容"
+		for _, colNameVal := range colNameOrder {
+			oneColString2 := (" | " + val.GetValToString(colNameVal))
+			outStringListOne_tmp += FormatColString(oneColString2, colLen8[colNameVal])
+		}
+		outStringList = append(outStringList, outStringListOne_tmp)
 	}
 	return outStringList
 }
+func (this *ST_MemTable) PrintTable_Remark() ([]string) {
+	outStringList := make([]string, 0)
+	outStringListOne := ""  //头
+	outStringListOne2 := "" //备注
 
+	colNameOrder := SortSliceString{}
+	colLen8 := make(map[string]int)
+	for key, _ := range this.colNameType {
+		colNameOrder = append(colNameOrder, key)
+	}
+	colNameOrder.Sort_ASC()
+	//获取每列最大长度
+	for key, val := range this.colNameRemark {
+		lenTmp := StringPrintWidth(" | " + val)
+		colLen8[key] = lenTmp
+	}
+
+	for _, colName := range colNameOrder {
+		oneColString := (" | " + colName + "(" + this.colNameType[colName] + ")")
+		lenTmp1 := StringPrintWidth(oneColString)
+		if lenTmp1 > colLen8[colName] {
+			colLen8[colName] = lenTmp1
+		}
+		for _, val := range this.memTable {
+			lenTmp := StringPrintWidth(" | " + val.GetValToString(colName))
+			if lenTmp > colLen8[colName] {
+				colLen8[colName] = lenTmp
+			}
+		}
+		//截止最长
+		if colLen8[colName] > printMaxLen {
+			colLen8[colName] = printMaxLen
+		}
+	}
+
+	//打印头
+	outStringListOne += "字段"
+	for _, colNameVal := range colNameOrder {
+		oneColString2 := (" | " + colNameVal + "(" + this.colNameType[colNameVal] + ")")
+		outStringListOne += FormatColString(oneColString2, colLen8[colNameVal])
+	}
+	outStringList = append(outStringList, outStringListOne)
+
+	//打印备注
+	outStringListOne2 += "备注"
+	for _, colNameVal := range colNameOrder {
+		oneColString2 := (" | " + this.colNameRemark[colNameVal])
+		outStringListOne2 += FormatColString(oneColString2, colLen8[colNameVal])
+	}
+	outStringList = append(outStringList, outStringListOne2)
+
+	//打印主体
+	for _, val := range this.memTable {
+		outStringListOne_tmp := "内容"
+		for _, colNameVal := range colNameOrder {
+			oneColString2 := (" | " + val.GetValToString(colNameVal))
+			outStringListOne_tmp += FormatColString(oneColString2, colLen8[colNameVal])
+		}
+		outStringList = append(outStringList, outStringListOne_tmp)
+	}
+	return outStringList
+}
 
 //对表进行关键列排序，目前只支持int类型，后续加入时间排序
 func (this *ST_MemTable) Sort_ASC(ColName string) {
@@ -638,7 +799,7 @@ func SliceToString(inParam []interface{}, interval string) string {
 				outStr += interval
 			}
 		case string:
-			outStr += val.(string)
+			outStr += ("'"+val.(string)+"'")
 			if i < len(inParam)-1 {
 				outStr += interval
 			}
@@ -847,4 +1008,37 @@ func (this SortSlicefloat32) Swap(i, j int) {
 }
 func (this SortSlicefloat32) Less(i, j int) bool {
 	return this[i] < this[j]
+}
+
+type SortSliceString []string
+
+func (this SortSliceString) Sort_ASC() {
+	if !sort.IsSorted(this) {
+		sort.Sort(this)
+	}
+}
+func (this SortSliceString) Sort_DESC() {
+	this.Sort_ASC()
+	i := 0
+	j := len(this) - 1
+	for i < j {
+		this.Swap(i, j)
+		i++
+		j--
+	}
+}
+func (this SortSliceString) Len() int {
+	return len(this)
+}
+func (this SortSliceString) Swap(i, j int) {
+	this[i], this[j] = this[j], this[i]
+}
+
+//字符串对比首字母asc码大小
+func (this SortSliceString) Less(i, j int) bool {
+	if len(this[i]) != 0 && len(this[j]) != 0 {
+		return this[i][0] < this[j][0]
+	} else {
+		return len(this[i]) < len(this[j])
+	}
 }
