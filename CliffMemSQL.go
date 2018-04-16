@@ -87,6 +87,52 @@ func (this st_MemTable_Row) GetVal(inParam string) (interface{}) {
 		return nil
 	}
 }
+
+func (this st_MemTable_Row) GetStringToInt(inParam string) (int) {
+	if this != nil {
+		out, err := strconv.ParseInt(this.GetString(inParam), 10, 0)
+		if err != nil {
+			out = 0
+		}
+		return int(out)
+	} else {
+		return 0
+	}
+}
+func (this st_MemTable_Row) GetStringToInt64(inParam string) (int64) {
+	if this != nil {
+		out, err := strconv.ParseInt(this.GetString(inParam), 10, 64)
+		if err != nil {
+			out = 0
+		}
+		return out
+	} else {
+		return 0
+	}
+}
+func (this st_MemTable_Row) GetStringToFloat64(inParam string) (float64) {
+	if this != nil {
+		out, err := strconv.ParseFloat(this.GetString(inParam), 64)
+		if err != nil {
+			out = 0
+		}
+		return out
+	} else {
+		return 0
+	}
+}
+func (this st_MemTable_Row) GetStringToFloat32(inParam string) (float32) {
+	if this != nil {
+		out, err := strconv.ParseFloat(this.GetString(inParam), 32)
+		if err != nil {
+			out = 0
+		}
+		return float32(out)
+	} else {
+		return 0
+	}
+}
+
 func (this *st_MemTable_Row) SetVal(inKey string, inVal interface{}) {
 	if this != nil {
 		(*this)[inKey] = inVal
@@ -260,7 +306,10 @@ func (this *ST_MemTable) DeleteRow(whereMap map[string]interface{}) (bool, error
 }
 
 //inCnt:-1 获取全部行数据
-func (this *ST_MemTable) GetRows(inStart int, inCnt int) (tf bool, effectRows int, outmap []st_MemTable_Row, err error) {
+//inStart 为有效行目录的下标
+func (this *ST_MemTable) GetRows_IndexOK(inStart int, inCnt int) (tf bool, effectRows int, outmap []st_MemTable_Row, err error) {
+	validStart := 0
+
 	if this == nil {
 		return false, 0, nil, errors.New("pT is null")
 	}
@@ -269,7 +318,56 @@ func (this *ST_MemTable) GetRows(inStart int, inCnt int) (tf bool, effectRows in
 	}
 	if inCnt < 0 && inCnt != -1 {
 		return false, 0, nil, errors.New("inCnt < 0 && inCnt != -1")
-	} else if inCnt == -1 {
+	}
+	//找到有效行的开始
+	validCnt := 0
+	for i, val := range this.memTable {
+		if val.GetInt("m_ValidStatus") == 1 {
+			validCnt ++
+			if validCnt >= inStart+1 {
+				validStart = i
+				break
+			}
+		}
+	}
+	if inCnt == -1 {
+		retEffectCnt := 0
+		retList := make([]st_MemTable_Row, 0)
+		for i, val := range this.memTable {
+			if i >= validStart && val.GetInt("m_ValidStatus") == 1 {
+				retList = append(retList, val)
+				retEffectCnt++
+			}
+		}
+		return true, retEffectCnt, retList, nil
+	}
+	//获取
+	retEffectCnt := 0
+	retList := make([]st_MemTable_Row, 0)
+	for i, val := range this.memTable {
+		if i >= validStart && val.GetInt("m_ValidStatus") == 1 {
+			if retEffectCnt < inCnt {
+				retList = append(retList, val)
+				retEffectCnt ++
+			}
+		}
+	}
+	return true, retEffectCnt, retList, nil
+}
+
+//inStart 为总表的下标
+func (this *ST_MemTable) GetRows(inStart int, inCnt int) (tf bool, effectRows int, outmap []st_MemTable_Row, err error) {
+	if this == nil {
+		return false, 0, nil, errors.New("pT is null")
+	}
+	if inStart < 0 || (inStart >= this.GetRowCount_Total() && this.GetRowCount_Total() > 0) {
+		return false, 0, nil, errors.New("inStart out of range")
+	}
+	if inCnt < 0 && inCnt != -1 {
+		return false, 0, nil, errors.New("inCnt < 0 && inCnt != -1")
+	}
+
+	if inCnt == -1 {
 		retEffectCnt := 0
 		retList := make([]st_MemTable_Row, 0)
 		for i, val := range this.memTable {
@@ -284,9 +382,11 @@ func (this *ST_MemTable) GetRows(inStart int, inCnt int) (tf bool, effectRows in
 	retEffectCnt := 0
 	retList := make([]st_MemTable_Row, 0)
 	for i, val := range this.memTable {
-		if i >= inStart && i < inStart+inCnt && val.GetInt("m_ValidStatus") == 1 {
-			retList = append(retList, val)
-			retEffectCnt++
+		if i >= inStart && val.GetInt("m_ValidStatus") == 1 {
+			if retEffectCnt < inCnt {
+				retList = append(retList, val)
+				retEffectCnt ++
+			}
 		}
 	}
 	return true, retEffectCnt, retList, nil
@@ -332,6 +432,56 @@ func (this *ST_MemTable) GetColsOne(inColName string) ([]map[string]interface{},
 		retList = append(retList, retListOne)
 	}
 	return retList, nil
+}
+func (this *ST_MemTable) Subset(inColName []string) (*ST_MemTable, error) {
+	if this == nil {
+		return nil, errors.New("pT is null")
+	}
+	for _, val := range inColName {
+		if !this.CheckColNameExist(val) {
+			return nil, errors.New("没有列名:" + val)
+		}
+	}
+	colNameType := make(map[string]string)
+	for _, val := range inColName {
+		colNameType[val] = this.getColType(val)
+	}
+	pTOut := NewMemTable(colNameType)
+
+	//获取
+	_, _, thisRows, err := this.GetRows(0, -1)
+	if err != nil {
+		return nil, err
+	}
+	for _, val := range thisRows {
+		rowOne := make(map[string]interface{})
+		for colName, colType := range colNameType {
+			switch colType {
+			case "string":
+				rowOne[colName] = val.GetString(colName)
+				break
+
+			case "int":
+				rowOne[colName] = val.GetInt(colName)
+				break
+
+			case "int64":
+				rowOne[colName] = val.GetInt64(colName)
+				break
+			default:
+				break
+			}
+		}
+		_, err := pTOut.InsertRow(rowOne)
+		if err != nil {
+			return pTOut, err
+		}
+	}
+
+	for key, val := range this.colNameRemark {
+		pTOut.AddRemark(key, val)
+	}
+	return pTOut, nil
 }
 
 func (this *ST_MemTable) QueryRows(whereMap map[string]interface{}) (posRow []int, total int, outMap []map[string]interface{}, err error) {
@@ -397,6 +547,7 @@ func (this *ST_MemTable) AddColName(colNameType map[string]string) (bool, error)
 }
 
 //pT1 join pT2
+//Join--如果联合主键相同，则以pT2相同字段覆盖pT1相同字段内容
 func (this *ST_MemTable) Join(pT2 *ST_MemTable, whereColNameEqual map[string]string) (outPT *ST_MemTable, effectRows int) {
 	joinMapNameType := make(map[string]string)
 	joinRemark := make(map[string]string)
@@ -441,6 +592,191 @@ func (this *ST_MemTable) Join(pT2 *ST_MemTable, whereColNameEqual map[string]str
 	return retPT, retPT.GetRowCount()
 }
 func (this *ST_MemTable) LeftJoin(pT2 *ST_MemTable, whereColNameEqual map[string]string) (outPT *ST_MemTable, effectRows int) {
+	joinMapNameType := make(map[string]string)
+	joinRemark := make(map[string]string)
+	for key, val := range this.colNameType {
+		joinMapNameType[key] = val
+		joinRemark[key] = this.colNameRemark[key]
+	}
+	for key, val := range pT2.colNameType {
+		joinMapNameType[key] = val
+		joinRemark[key] = pT2.colNameRemark[key]
+	}
+	retPT := NewMemTable(joinMapNameType)
+	for key, val := range joinRemark {
+		retPT.AddRemark(key, val)
+	}
+	//n^2匹配
+	for _, valMap1 := range this.memTable {
+		if valMap1.GetVal("m_ValidStatus") == 1 {
+			joinMapRow := make(map[string]interface{})
+			for key1, val1 := range valMap1 {
+				joinMapRow[key1] = val1
+			}
+			rowMatchCnt := 0
+			for _, valMap2 := range pT2.memTable {
+				if valMap2.GetVal("m_ValidStatus") == 1 {
+					oneRowMathCnt := 0
+					for WhereStr1, WhereStr2 := range whereColNameEqual {
+						if valMap1[WhereStr1] == valMap2[WhereStr2] {
+							oneRowMathCnt++
+						}
+					}
+					if oneRowMathCnt == len(whereColNameEqual) {
+						for key2, val2 := range valMap2 {
+							joinMapRow[key2] = val2
+						}
+						rowMatchCnt++
+						retPT.InsertRow(joinMapRow)
+					}
+				}
+			}
+			if rowMatchCnt == 0 {
+				retPT.InsertRow(joinMapRow)
+			}
+		}
+	}
+	return retPT, retPT.GetRowCount()
+}
+
+//Join_1Cover2--如果联合主键相同，则以pT1相同字段覆盖pT2相同字段内容
+//Join_2Cover1--如果联合主键相同，则以pT2相同字段覆盖pT1相同字段内容
+func (this *ST_MemTable) Join_1Cover2(pT2 *ST_MemTable, whereColNameEqual map[string]string) (outPT *ST_MemTable, effectRows int) {
+	joinMapNameType := make(map[string]string)
+	joinRemark := make(map[string]string)
+	for key, val := range pT2.colNameType {
+		joinMapNameType[key] = val
+		joinRemark[key] = pT2.colNameRemark[key]
+	}
+	for key, val := range this.colNameType {
+		joinMapNameType[key] = val
+		joinRemark[key] = this.colNameRemark[key]
+	}
+	retPT := NewMemTable(joinMapNameType)
+	//备注加入
+	for key, val := range joinRemark {
+		retPT.AddRemark(key, val)
+	}
+	//n^2匹配
+	for _, valMap1 := range this.memTable {
+		if valMap1.GetVal("m_ValidStatus") == 1 {
+			joinMapRow := make(map[string]interface{})
+			for _, valMap2 := range pT2.memTable {
+				if valMap2.GetVal("m_ValidStatus") == 1 {
+					mathCnt := 0
+					for WhereStr1, WhereStr2 := range whereColNameEqual {
+						if valMap1[WhereStr1] == valMap2[WhereStr2] {
+							mathCnt++
+						}
+					}
+					if mathCnt == len(whereColNameEqual) {
+						for key2, val2 := range valMap2 {
+							joinMapRow[key2] = val2
+						}
+						for key1, val1 := range valMap1 {
+							joinMapRow[key1] = val1
+						}
+						retPT.InsertRow(joinMapRow)
+					}
+				}
+			}
+		}
+	}
+	return retPT, retPT.GetRowCount()
+}
+func (this *ST_MemTable) Join_2Cover1(pT2 *ST_MemTable, whereColNameEqual map[string]string) (outPT *ST_MemTable, effectRows int) {
+	joinMapNameType := make(map[string]string)
+	joinRemark := make(map[string]string)
+	for key, val := range this.colNameType {
+		joinMapNameType[key] = val
+		joinRemark[key] = this.colNameRemark[key]
+	}
+	for key, val := range pT2.colNameType {
+		joinMapNameType[key] = val
+		joinRemark[key] = pT2.colNameRemark[key]
+	}
+	retPT := NewMemTable(joinMapNameType)
+	//备注加入
+	for key, val := range joinRemark {
+		retPT.AddRemark(key, val)
+	}
+	//n^2匹配
+	for _, valMap1 := range this.memTable {
+		if valMap1.GetVal("m_ValidStatus") == 1 {
+			joinMapRow := make(map[string]interface{})
+			for _, valMap2 := range pT2.memTable {
+				if valMap2.GetVal("m_ValidStatus") == 1 {
+					mathCnt := 0
+					for WhereStr1, WhereStr2 := range whereColNameEqual {
+						if valMap1[WhereStr1] == valMap2[WhereStr2] {
+							mathCnt++
+						}
+					}
+					if mathCnt == len(whereColNameEqual) {
+						for key1, val1 := range valMap1 {
+							joinMapRow[key1] = val1
+						}
+						for key2, val2 := range valMap2 {
+							joinMapRow[key2] = val2
+						}
+						retPT.InsertRow(joinMapRow)
+					}
+				}
+			}
+		}
+	}
+	return retPT, retPT.GetRowCount()
+}
+func (this *ST_MemTable) LeftJoin_1Cover2(pT2 *ST_MemTable, whereColNameEqual map[string]string) (outPT *ST_MemTable, effectRows int) {
+	joinMapNameType := make(map[string]string)
+	joinRemark := make(map[string]string)
+	for key, val := range pT2.colNameType {
+		joinMapNameType[key] = val
+		joinRemark[key] = pT2.colNameRemark[key]
+	}
+	for key, val := range this.colNameType {
+		joinMapNameType[key] = val
+		joinRemark[key] = this.colNameRemark[key]
+	}
+	retPT := NewMemTable(joinMapNameType)
+	for key, val := range joinRemark {
+		retPT.AddRemark(key, val)
+	}
+	//n^2匹配
+	for _, valMap1 := range this.memTable {
+		if valMap1.GetVal("m_ValidStatus") == 1 {
+			joinMapRow := make(map[string]interface{})
+			for key1, val1 := range valMap1 {
+				joinMapRow[key1] = val1
+			}
+			rowMatchCnt := 0
+			for _, valMap2 := range pT2.memTable {
+				if valMap2.GetVal("m_ValidStatus") == 1 {
+					oneRowMathCnt := 0
+					for WhereStr1, WhereStr2 := range whereColNameEqual {
+						if valMap1[WhereStr1] == valMap2[WhereStr2] {
+							oneRowMathCnt++
+						}
+					}
+					if oneRowMathCnt == len(whereColNameEqual) {
+						for key2, val2 := range valMap2 {
+							if _, ok := joinMapRow[key2]; !ok {
+								joinMapRow[key2] = val2
+							}
+						}
+						rowMatchCnt++
+						retPT.InsertRow(joinMapRow)
+					}
+				}
+			}
+			if rowMatchCnt == 0 {
+				retPT.InsertRow(joinMapRow)
+			}
+		}
+	}
+	return retPT, retPT.GetRowCount()
+}
+func (this *ST_MemTable) LeftJoin_2Cover1(pT2 *ST_MemTable, whereColNameEqual map[string]string) (outPT *ST_MemTable, effectRows int) {
 	joinMapNameType := make(map[string]string)
 	joinRemark := make(map[string]string)
 	for key, val := range this.colNameType {
@@ -799,7 +1135,7 @@ func SliceToString(inParam []interface{}, interval string) string {
 				outStr += interval
 			}
 		case string:
-			outStr += ("'"+val.(string)+"'")
+			outStr += val.(string)
 			if i < len(inParam)-1 {
 				outStr += interval
 			}
@@ -927,6 +1263,24 @@ func (stMyInterfaceConv) GetString(in interface{}) string {
 		return ""
 	}
 }
+func (stMyInterfaceConv) GetValToString(in interface{}) string {
+	if in != nil {
+		switch in.(type) {
+		case string:
+			return in.(string)
+		case int:
+			return strconv.Itoa(in.(int))
+		case int64:
+			return strconv.FormatInt(in.(int64), 10)
+		case float64:
+			return strconv.FormatFloat(in.(float64), 'f', 0, 0)
+		default:
+			return ""
+		}
+	} else {
+		return ""
+	}
+}
 
 //加入Sort函数,比较数字大小
 type SortSliceInt []int
@@ -1037,8 +1391,19 @@ func (this SortSliceString) Swap(i, j int) {
 //字符串对比首字母asc码大小
 func (this SortSliceString) Less(i, j int) bool {
 	if len(this[i]) != 0 && len(this[j]) != 0 {
-		return this[i][0] < this[j][0]
-	} else {
-		return len(this[i]) < len(this[j])
+		leni := len(this[i])
+		lenj := len(this[j])
+		lenMin := leni
+		if lenMin > lenj {
+			lenMin = lenj
+		}
+		for iTmp := 0; iTmp < lenMin; iTmp++ {
+			if this[i][iTmp] < this[j][iTmp] {
+				return true
+			} else if this[i][iTmp] > this[j][iTmp] {
+				return false
+			}
+		}
 	}
+	return len(this[i]) < len(this[j])
 }

@@ -6,7 +6,7 @@ import (
 )
 
 //微服务接口错误码枚举值
-func TestMyMemSQL(){
+func TestMyMemSQL() {
 	colNameType := make(map[string]string)
 	colNameType["hello"] = "string"
 	colNameType["nihao"] = "string"
@@ -15,85 +15,109 @@ func TestMyMemSQL(){
 	pT := CliffMemSQL.NewMemTable(colNameType)
 
 	colNameType2 := make(map[string]string)
-	colNameType2["hello2"] = "string"
+	colNameType2["hello"] = "string"
 	colNameType2["nihao2"] = "string"
 	colNameType2["dajiahao2"] = "string"
 	colNameType2["countx"] = "int"
 	pT2 := CliffMemSQL.NewMemTable(colNameType2)
 
-
-
 	insertRowTmp := make(map[string]interface{})
 	insertRowTmp2 := make(map[string]interface{})
 
-
-	insertRowTmp2["hello2"]="a"
-	insertRowTmp2["nihao2"]= "b"
-	insertRowTmp2["dajiahao2"]="c"
-	insertRowTmp2["countx"]=3
+	insertRowTmp2["hello"] = "a"
+	insertRowTmp2["nihao2"] = "b"
+	insertRowTmp2["dajiahao2"] = "c"
+	insertRowTmp2["countx"] = 3
 	pT2.InsertRow(insertRowTmp2)
-	insertRowTmp2["hello2"]="aa2"
-	insertRowTmp2["nihao2"]="bbbbb2"
-	insertRowTmp2["dajiahao2"]="ccccc2"
-	insertRowTmp2["countx"]=3
+	insertRowTmp2["hello"] = "aa2"
+	insertRowTmp2["nihao2"] = "bbbbb2"
+	insertRowTmp2["dajiahao2"] = "ccccc2"
+	insertRowTmp2["countx"] = 3
 	pT2.InsertRow(insertRowTmp2)
-	insertRowTmp2["hello2"]="aaa4"
-	insertRowTmp2["nihao2"]="bbb4"
-	insertRowTmp2["dajiahao2"]="ccc4"
-	insertRowTmp2["countx"]=4
+	insertRowTmp2["hello"] = "aaa4"
+	insertRowTmp2["nihao2"] = "bbb4"
+	insertRowTmp2["dajiahao2"] = "ccc4"
+	insertRowTmp2["countx"] = 4
 	pT2.InsertRow(insertRowTmp2)
 
-
-
-
-
-
-
-	insertRowTmp["hello"]="a"
-	insertRowTmp["nihao"]= "b"
-	insertRowTmp["dajiahao"]="c"
-	insertRowTmp["countx"]=3
+	insertRowTmp["hello"] = "aa"
+	insertRowTmp["nihao"] = "bbbbb"
+	insertRowTmp["dajiahao"] = "ccccc"
+	insertRowTmp["countx"] = 12
 	pT.InsertRow(insertRowTmp)
 
-
-	insertRowTmp["hello"]="aa"
-	insertRowTmp["nihao"]="bbbbb"
-	insertRowTmp["dajiahao"]="ccccc"
-	insertRowTmp["countx"]=12
+	insertRowTmp["hello"] = "a"
+	insertRowTmp["nihao"] = "b"
+	insertRowTmp["dajiahao"] = "c"
+	insertRowTmp["countx"] = 3
 	pT.InsertRow(insertRowTmp)
 
-
-	insertRowTmp["hello"]="aa"
-	insertRowTmp["nihao"]="bb"
-	insertRowTmp["dajiahao"]="cc"
-	insertRowTmp["countx"]=1
+	insertRowTmp["hello"] = "aa"
+	insertRowTmp["nihao"] = "bb"
+	insertRowTmp["dajiahao"] = "cc"
+	insertRowTmp["countx"] = 1
 	pT.InsertRow(insertRowTmp)
-	insertRowTmp["hello"]="aaa"
-	insertRowTmp["nihao"]="bbb"
-	insertRowTmp["dajiahao"]="ccc"
-	insertRowTmp["countx"]=14
+	insertRowTmp["hello"] = "aaa"
+	insertRowTmp["nihao"] = "bbb"
+	insertRowTmp["dajiahao"] = "ccc"
+	insertRowTmp["countx"] = 14
 	pT.InsertRow(insertRowTmp)
 	insertRowTmp = make(map[string]interface{})
-	insertRowTmp["hello"]="aaa"
-	insertRowTmp["nihao"]="bbb"
-	insertRowTmp["dajiahao"]="ccc"
+	insertRowTmp["hello"] = "aaa"
+	insertRowTmp["nihao"] = "bbb"
+	insertRowTmp["dajiahao"] = "ccc"
 	pT.InsertRow(insertRowTmp)
 	insertRowTmp = make(map[string]interface{})
-	insertRowTmp["hello"]="aaaa"
-	insertRowTmp["nihao"]="bbba"
-	insertRowTmp["dajiahao"]="ccca"
+	insertRowTmp["hello"] = "aaaa"
+	insertRowTmp["nihao"] = "bbba"
+	insertRowTmp["dajiahao"] = "ccca"
 	pT.InsertRow(insertRowTmp)
-	insertRowTmp["hello"]="aaaa"
-	insertRowTmp["nihao"]="bbba长度测试12313124dafadfasd"
-	insertRowTmp["dajiahao"]="bbba长度测试12313124dafadfasddfasdfasd"
-	insertRowTmp["countx"]=1
+	insertRowTmp["hello"] = "aaaa"
+	insertRowTmp["nihao"] = "bbba长度测试12313124dafadfasd"
+	insertRowTmp["dajiahao"] = "bbba长度测试12313124dafadfasddfasdfasd"
+	insertRowTmp["countx"] = 1
 	pT.InsertRow(insertRowTmp)
 
+	pT.AddRemark("hello", "记返费给的状态\n0\t未处理\n1\t未面试\n2\t通过\n3\t未通过\n4\t放弃")
+	pT.AddRemark("nihao", "你好2")
+	pT.AddRemark("dajiahao", "大家好")
+	pT.AddRemark("countx", "总计1111大家好大家好大家好大家好11111111家好1111$$$$家好$家好$$$$$$$、$$$家好$$$$$$$$$$#、家好######家好#####、##、#家好大家####家好##家好#家好###家好123、##########@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!$$$$$$$@@@@@@@@@@@@@@@@@@@@@@@@@!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!$$$$$$$33333333333333333")
+	pT2.AddRemark("countx", "总计1111")
 
-	pT.AddRemark("hello","记返费给的状态\n0\t未处理\n1\t未面试\n2\t通过\n3\t未通过\n4\t放弃")
-	pT.AddRemark("nihao","你好2")
-	pT.AddRemark("dajiahao","大家好")
-	pT.AddRemark("countx","总计1111大家好大家好大家好大家好11111111家好1111$$$$家好$家好$$$$$$$、$$$家好$$$$$$$$$$#、家好######家好#####、##、#家好大家####家好##家好#家好###家好123、##########@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!$$$$$$$@@@@@@@@@@@@@@@@@@@@@@@@@!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!$$$$$$$33333333333333333")
+	whereMapJoin := make(map[string]string)
+	whereMapJoin["countx"] = "countx"
+	p1_2, _ := pT.Join_1Cover2(pT2, whereMapJoin)
+	p2_1, _ := pT.Join_2Cover1(pT2, whereMapJoin)
+
+	pT.GroupBy("hello")
+	for _, val := range pT.PrintTable() {
+		fmt.Println(val)
+	}
+	for i := 0; i < pT.GetRowCount_Total(); i++ {
+		fmt.Println(pT.GetRows(i, 1))
+	}
+	for i := 0; i < pT.GetRowCount(); i++ {
+		fmt.Println(pT.GetRows_IndexOK(i, 1))
+	}
+	for i := 0; i < pT.GetRowCount(); i++ {
+		fmt.Println(pT.GetRows(i, -1))
+	}
+
+	for _, val := range p1_2.PrintTable() {
+		fmt.Println(val)
+	}
+	for _, val := range p2_1.PrintTable() {
+		fmt.Println(val)
+	}
+
+	//p1_2L,_ :=pT.LeftJoin_1Cover2(pT2,whereMapJoin)
+	//p2_1L,_ :=pT.LeftJoin_2Cover1(pT2,whereMapJoin)
+	//for _,val := range p1_2L.PrintTable_Remark(){
+	//	fmt.Println(val)
+	//}
+	//for _,val := range p2_1L.PrintTable_Remark(){
+	//	fmt.Println(val)
+	//}
 
 	//pT2.AddRemark("hello","你好")
 	//pT2.AddRemark("nihao","你好2")
@@ -115,9 +139,7 @@ func TestMyMemSQL(){
 	//fmt.Println(pT.GetRows(0,-1))
 
 	////pT
-	whereMapJoin := make(map[string]string)
-	whereMapJoin["countx"] = "countx"
-	pT.GroupBy("hello")
+	//pT.GroupBy("hello")
 	//fmt.Println(pT.PrintTable())
 	//fmt.Println(pT.GetRows(0,-1))
 	//tmpOut, _ :=pT.Join(pT2,whereMapJoin)
@@ -131,7 +153,6 @@ func TestMyMemSQL(){
 	//fmt.Println(pT.GetRowCount_Total())
 	//fmt.Println(pT.GetRowCount())
 
-
 	//insertRowTmp2 := make(map[string]interface{})
 	//insertRowTmp2["hello2"]="a2"
 	//insertRowTmp2["nihao2"]= "b2"
@@ -139,20 +160,21 @@ func TestMyMemSQL(){
 	//insertRowTmp2["countx"]=3
 	//pT2.InsertRow(insertRowTmp2)
 
-	where :=make(map[string]string)
-	where["countx"]="countx"
-	pT3,_ := pT.LeftJoin(pT2,where)
-	_,_,x,_ :=pT3.GetRows(0,-1)
+	where := make(map[string]string)
+	where["countx"] = "countx"
+	//pT3, _ := pT.LeftJoin(pT2, where)
+	//_, _, _, _ := pT3.GetRows(0, -1)
 
-	for _,val :=range pT.PrintTable_Remark(){
+	for _, val := range pT.PrintTable_Remark() {
 		fmt.Println(val)
 	}
-	for _,val :=range pT.PrintTable(){
+	for _, val := range pT.PrintTable() {
 		fmt.Println(val)
 	}
-
-	fmt.Println(x)
-
+	outPt, _ := pT.Subset([]string{"hello", "nihao"})
+	for _, val := range outPt.PrintTable_Remark() {
+		fmt.Println(val)
+	}
 
 	//var tst1 []interface{}
 	//var tst2 []interface{}
@@ -171,8 +193,6 @@ func TestMyMemSQL(){
 	//fmt.Println(y1)
 	//testx()
 
-
-
 }
 
 func main() {
@@ -184,47 +204,46 @@ func main() {
 	//fmt.Println(reflect.TypeOf(a1[0]))
 	//fmt.Println(reflect.TypeOf(a2[0]))
 
-
 	TestMyMemSQL()
-	A := make([]interface{},0)
-	B := make([]interface{},0)
-	A = append(A,"1","2","3","4","5","6","7","8","9","4",)
-	B = append(B,"1","2","3","11","12","13","14","15","1",)
-	fmt.Println(CliffMemSQL.SliceSame(A,B))
-	fmt.Println(CliffMemSQL.SliceDiff(A,B))
-	fmt.Println(CliffMemSQL.SliceDiffFromA(A,B))
+	A := make([]interface{}, 0)
+	B := make([]interface{}, 0)
+	A = append(A, "1", "2", "3", "4", "5", "6", "7", "8", "9", "4", )
+	B = append(B, "1", "2", "3", "11", "12", "13", "14", "15", "1", )
+	fmt.Println(CliffMemSQL.SliceSame(A, B))
+	fmt.Println(CliffMemSQL.SliceDiff(A, B))
+	fmt.Println(CliffMemSQL.SliceDiffFromA(A, B))
 }
 
-func testx(){
-	DepartIDList := make([]int64,0)
-	DepartIDList = append(DepartIDList,1,2,3,4,5,6,7,9,8,10)
+func testx() {
+	DepartIDList := make([]int64, 0)
+	DepartIDList = append(DepartIDList, 1, 2, 3, 4, 5, 6, 7, 9, 8, 10)
 	MapDepartInterviewCountPer := make(map[int64]float32)
 	MapDepartTop := make(map[int64]int)
-	MapDepartInterviewCountPer[1]=0.1
-	MapDepartInterviewCountPer[2]=0.2
-	MapDepartInterviewCountPer[3]=0.5
-	MapDepartInterviewCountPer[4]=0.2
-	MapDepartInterviewCountPer[5]=0.3
-	MapDepartInterviewCountPer[6]=0.9
-	MapDepartInterviewCountPer[7]=0.15
-	MapDepartInterviewCountPer[8]=0.23
-	MapDepartInterviewCountPer[9]=0.44
-	MapDepartInterviewCountPer[10]=0.56
-//6 10 3 9 5 8 4 2 7 1
-	MapDepartTop[1]=1
-	MapDepartTop[2]=1
-	MapDepartTop[3]=1
-	MapDepartTop[4]=1
-	MapDepartTop[5]=1
-	MapDepartTop[6]=1
-	MapDepartTop[7]=1
-	MapDepartTop[8]=1
-	MapDepartTop[9]=1
-	MapDepartTop[10]=1
+	MapDepartInterviewCountPer[1] = 0.1
+	MapDepartInterviewCountPer[2] = 0.2
+	MapDepartInterviewCountPer[3] = 0.5
+	MapDepartInterviewCountPer[4] = 0.2
+	MapDepartInterviewCountPer[5] = 0.3
+	MapDepartInterviewCountPer[6] = 0.9
+	MapDepartInterviewCountPer[7] = 0.15
+	MapDepartInterviewCountPer[8] = 0.23
+	MapDepartInterviewCountPer[9] = 0.44
+	MapDepartInterviewCountPer[10] = 0.56
+	//6 10 3 9 5 8 4 2 7 1
+	MapDepartTop[1] = 1
+	MapDepartTop[2] = 1
+	MapDepartTop[3] = 1
+	MapDepartTop[4] = 1
+	MapDepartTop[5] = 1
+	MapDepartTop[6] = 1
+	MapDepartTop[7] = 1
+	MapDepartTop[8] = 1
+	MapDepartTop[9] = 1
+	MapDepartTop[10] = 1
 	for i, _ := range DepartIDList {
 		j := 0
 		for j <= len(DepartIDList)-1 {
-			if MapDepartInterviewCountPer[DepartIDList[i]] < MapDepartInterviewCountPer[DepartIDList[j]] && i!=j{
+			if MapDepartInterviewCountPer[DepartIDList[i]] < MapDepartInterviewCountPer[DepartIDList[j]] && i != j {
 				MapDepartTop[DepartIDList[i]]++
 			}
 			j++
