@@ -203,6 +203,19 @@ func main() {
 	//fmt.Println(reflect.TypeOf(a0[0]))//uint8
 	//fmt.Println(reflect.TypeOf(a1[0]))
 	//fmt.Println(reflect.TypeOf(a2[0]))
+	var test interface{}
+	testSlice := make([]interface{}, 0)
+	testSlice = append(testSlice, 0)
+	testSlice = append(testSlice, 1)
+	testSlice = append(testSlice, 5)
+	testSlice = append(testSlice, "123")
+	testSlice = append(testSlice, "321")
+	testSlice = append(testSlice, int64(12))
+	testSlice = append(testSlice, int64(13))
+	test = testSlice
+	fmt.Println(CliffMemSQL.CGetInterface.GetValToSliceInt(test))
+	fmt.Println(CliffMemSQL.CGetInterface.GetValToSliceString(test))
+	fmt.Println(CliffMemSQL.CGetInterface.GetValToSliceInt64(test))
 
 	TestMyMemSQL()
 	A := make([]interface{}, 0)

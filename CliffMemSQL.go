@@ -536,6 +536,28 @@ func (this *ST_MemTable) QueryRowsLike(whereMap map[string]interface{}) (posRow 
 	}
 	return pos, cnt, retList, nil
 }
+
+func (this *ST_MemTable) QueryTable(whereMap map[string]interface{}) (*ST_MemTable, error) {
+	if this == nil {
+		return nil, errors.New("pT is null")
+	}
+	//获取
+	gotIt := 0
+	pTOut := NewMemTable(this.colNameType)
+	for _, valMapRow := range this.memTable {
+		gotIt = 0
+		for key, val := range whereMap { //要匹配的key和val
+			if valMapRow[key] == val && valMapRow.GetInt("m_ValidStatus") == 1 {
+				gotIt ++
+			}
+		}
+		if gotIt == len(whereMap) {
+			pTOut.InsertRow(valMapRow)
+		}
+	}
+	return pTOut, nil
+}
+
 func (this *ST_MemTable) AddColName(colNameType map[string]string) (bool, error) {
 	if this == nil {
 		return false, errors.New("pT is null")
@@ -1280,6 +1302,46 @@ func (stMyInterfaceConv) GetValToString(in interface{}) string {
 	} else {
 		return ""
 	}
+}
+func (stMyInterfaceConv) GetValToSlice(in interface{}) []interface{} {
+	if inList, ok := in.([]interface{}); ok {
+		return inList
+	} else {
+		return nil
+	}
+}
+func (stMyInterfaceConv) GetValToSliceInt(in interface{}) []int {
+	outList := make([]int, 0)
+	if inList, ok := in.([]interface{}); ok {
+		for _, val := range inList {
+			if x, ok := val.(int); ok {
+				outList = append(outList, x)
+			}
+		}
+	}
+	return outList
+}
+func (stMyInterfaceConv) GetValToSliceInt64(in interface{}) []int64 {
+	outList := make([]int64, 0)
+	if inList, ok := in.([]interface{}); ok {
+		for _, val := range inList {
+			if x, ok := val.(int64); ok {
+				outList = append(outList, x)
+			}
+		}
+	}
+	return outList
+}
+func (stMyInterfaceConv) GetValToSliceString(in interface{}) []string {
+	outList := make([]string, 0)
+	if inList, ok := in.([]interface{}); ok {
+		for _, val := range inList {
+			if x, ok := val.(string); ok {
+				outList = append(outList, x)
+			}
+		}
+	}
+	return outList
 }
 
 //加入Sort函数,比较数字大小
