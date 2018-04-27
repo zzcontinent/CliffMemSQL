@@ -3,6 +3,9 @@ package main
 import (
 	"fmt"
 	"git.woda.ink/woda/common/utils/CliffMemSQL"
+	"time"
+	log "github.com/xiaomi-tc/log15"
+	"runtime/debug"
 )
 
 //微服务接口错误码枚举值
@@ -76,7 +79,14 @@ func TestMyMemSQL() {
 	insertRowTmp["nihao"] = "bbba长度测试12313124dafadfasd"
 	insertRowTmp["dajiahao"] = "bbba长度测试12313124dafadfasddfasdfasd"
 	insertRowTmp["countx"] = 1
-	pT.InsertRow(insertRowTmp)
+	elapsed := time.Since(tStart)
+	fmt.Println("一分钱测试导入结束 ", " 时间= "+time.Now().String(), " 耗时:"+elapsed.String())
+	for i := 0; i < 100; i++ {
+		pT.InsertRow(insertRowTmp)
+	}
+	elapsed = time.Since(tStart)
+	fmt.Println("一分钱测试导入结束 ", " 时间= "+time.Now().String(), " 耗时:"+elapsed.String())
+
 
 	pT.AddRemark("hello", "记返费给的状态\n0\t未处理\n1\t未面试\n2\t通过\n3\t未通过\n4\t放弃")
 	pT.AddRemark("nihao", "你好2")
@@ -84,31 +94,65 @@ func TestMyMemSQL() {
 	pT.AddRemark("countx", "总计1111大家好大家好大家好大家好11111111家好1111$$$$家好$家好$$$$$$$、$$$家好$$$$$$$$$$#、家好######家好#####、##、#家好大家####家好##家好#家好###家好123、##########@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!$$$$$$$@@@@@@@@@@@@@@@@@@@@@@@@@!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!$$$$$$$33333333333333333")
 	pT2.AddRemark("countx", "总计1111")
 
-	whereMapJoin := make(map[string]string)
-	whereMapJoin["countx"] = "countx"
-	p1_2, _ := pT.Join_1Cover2(pT2, whereMapJoin)
-	p2_1, _ := pT.Join_2Cover1(pT2, whereMapJoin)
+	//for _,val := range pT.PrintTable(){
+	//	fmt.Println(val)
+	//}
+	//for _,val := range pT2.PrintTable(){
+	//	fmt.Println(val)
+	//}
 
-	pT.GroupBy("hello")
-	for _, val := range pT.PrintTable() {
-		fmt.Println(val)
-	}
-	for i := 0; i < pT.GetRowCount_Total(); i++ {
-		fmt.Println(pT.GetRows(i, 1))
-	}
-	for i := 0; i < pT.GetRowCount(); i++ {
-		fmt.Println(pT.GetRows_IndexOK(i, 1))
-	}
-	for i := 0; i < pT.GetRowCount(); i++ {
-		fmt.Println(pT.GetRows(i, -1))
-	}
+	//pTinsert,_ := pT.InserTable(pT2)
+	pT.InserTable(pT2)
+	//for _,val := range pTinsert.PrintTable(){
+	//	fmt.Println(val)
+	//}
+	elapsed = time.Since(tStart)
+	fmt.Println("一分钱测试导入结束 ", " 时间= "+time.Now().String(), " 耗时:"+elapsed.String())
 
-	for _, val := range p1_2.PrintTable() {
-		fmt.Println(val)
-	}
-	for _, val := range p2_1.PrintTable() {
-		fmt.Println(val)
-	}
+
+	whereInAnd := make(map[string][]interface{})
+	whereInAnd["hello"] = make([]interface{}, 0)
+	whereInAnd["nihao"] = make([]interface{}, 0)
+	whereInAnd["hello"] = append(whereInAnd["hello"], "a", "aa")
+	whereInAnd["nihao"] = append(whereInAnd["nihao"], "b", "")
+	pT.QueryTableInAnd(whereInAnd)
+
+	elapsed = time.Since(tStart)
+	fmt.Println("一分钱测试导入结束 ", " 时间= "+time.Now().String(), " 耗时:"+elapsed.String())
+
+	//for _,val := range pT.PrintTable(){
+	//	fmt.Println(val)
+	//}
+	//for _,val := range pTIn.PrintTable(){
+	//	fmt.Println(val)
+	//}
+
+	//whereMapJoin := make(map[string]string)
+	//whereMapJoin["countx"] = "countx"
+
+	//p1_2, _ := pT.Join_1Cover2(pT2, whereMapJoin)
+	//p2_1, _ := pT.Join_2Cover1(pT2, whereMapJoin)
+	//
+	//pT.GroupBy("hello")
+	//for _, val := range pT.PrintTable() {
+	//	fmt.Println(val)
+	//}
+	//for i := 0; i < pT.GetRowCount_Total(); i++ {
+	//	fmt.Println(pT.GetRows(i, 1))
+	//}
+	//for i := 0; i < pT.GetRowCount(); i++ {
+	//	fmt.Println(pT.GetRows_IndexOK(i, 1))
+	//}
+	//for i := 0; i < pT.GetRowCount(); i++ {
+	//	fmt.Println(pT.GetRows(i, -1))
+	//}
+	//
+	//for _, val := range p1_2.PrintTable() {
+	//	fmt.Println(val)
+	//}
+	//for _, val := range p2_1.PrintTable() {
+	//	fmt.Println(val)
+	//}
 
 	//p1_2L,_ :=pT.LeftJoin_1Cover2(pT2,whereMapJoin)
 	//p2_1L,_ :=pT.LeftJoin_2Cover1(pT2,whereMapJoin)
@@ -160,21 +204,21 @@ func TestMyMemSQL() {
 	//insertRowTmp2["countx"]=3
 	//pT2.InsertRow(insertRowTmp2)
 
-	where := make(map[string]string)
-	where["countx"] = "countx"
+	//where := make(map[string]string)
+	//where["countx"] = "countx"
 	//pT3, _ := pT.LeftJoin(pT2, where)
 	//_, _, _, _ := pT3.GetRows(0, -1)
 
-	for _, val := range pT.PrintTable_Remark() {
-		fmt.Println(val)
-	}
-	for _, val := range pT.PrintTable() {
-		fmt.Println(val)
-	}
-	outPt, _ := pT.Subset([]string{"hello", "nihao"})
-	for _, val := range outPt.PrintTable_Remark() {
-		fmt.Println(val)
-	}
+	//for _, val := range pT.PrintTable_Remark() {
+	//	fmt.Println(val)
+	//}
+	//for _, val := range pT.PrintTable() {
+	//	fmt.Println(val)
+	//}
+	//outPt, _ := pT.Subset([]string{"hello", "nihao"})
+	//for _, val := range outPt.PrintTable_Remark() {
+	//	fmt.Println(val)
+	//}
 
 	//var tst1 []interface{}
 	//var tst2 []interface{}
@@ -194,37 +238,22 @@ func TestMyMemSQL() {
 	//testx()
 
 }
-
+var tStart time.Time // get current time
 func main() {
-	//a0 := "01"
-	//a1 := "Hello"
-	//a2 := "你好"
-	//
-	//fmt.Println(reflect.TypeOf(a0[0]))//uint8
-	//fmt.Println(reflect.TypeOf(a1[0]))
-	//fmt.Println(reflect.TypeOf(a2[0]))
-	var test interface{}
-	testSlice := make([]interface{}, 0)
-	testSlice = append(testSlice, 0)
-	testSlice = append(testSlice, 1)
-	testSlice = append(testSlice, 5)
-	testSlice = append(testSlice, "123")
-	testSlice = append(testSlice, "321")
-	testSlice = append(testSlice, int64(12))
-	testSlice = append(testSlice, int64(13))
-	test = testSlice
-	fmt.Println(CliffMemSQL.CGetInterface.GetValToSliceInt(test))
-	fmt.Println(CliffMemSQL.CGetInterface.GetValToSliceString(test))
-	fmt.Println(CliffMemSQL.CGetInterface.GetValToSliceInt64(test))
+	tStart = time.Now() // get current time
+	fmt.Println("一分钱测试导入开始 ", " 时间= ", tStart.String())
+	defer func() {
+		if err := recover(); err != nil {
+			log.Crit("OneCentTestBat", "panic: ", err)
+			log.Crit("OneCentTestBat", "stack: ", string(debug.Stack()))
+		}
+		elapsed := time.Since(tStart)
+		log.Info("一分钱测试导入结束 ", " 时间= "+time.Now().String(), " 耗时:"+elapsed.String())
+		fmt.Println("一分钱测试导入结束 ", " 时间= "+time.Now().String(), " 耗时:"+elapsed.String())
+	}()
 
 	TestMyMemSQL()
-	A := make([]interface{}, 0)
-	B := make([]interface{}, 0)
-	A = append(A, "1", "2", "3", "4", "5", "6", "7", "8", "9", "4", )
-	B = append(B, "1", "2", "3", "11", "12", "13", "14", "15", "1", )
-	fmt.Println(CliffMemSQL.SliceSame(A, B))
-	fmt.Println(CliffMemSQL.SliceDiff(A, B))
-	fmt.Println(CliffMemSQL.SliceDiffFromA(A, B))
+
 }
 
 func testx() {
