@@ -87,7 +87,6 @@ func TestMyMemSQL() {
 	elapsed = time.Since(tStart)
 	fmt.Println("一分钱测试导入结束 ", " 时间= "+time.Now().String(), " 耗时:"+elapsed.String())
 
-
 	pT.AddRemark("hello", "记返费给的状态\n0\t未处理\n1\t未面试\n2\t通过\n3\t未通过\n4\t放弃")
 	pT.AddRemark("nihao", "你好2")
 	pT.AddRemark("dajiahao", "大家好")
@@ -108,7 +107,6 @@ func TestMyMemSQL() {
 	//}
 	elapsed = time.Since(tStart)
 	fmt.Println("一分钱测试导入结束 ", " 时间= "+time.Now().String(), " 耗时:"+elapsed.String())
-
 
 	whereInAnd := make(map[string][]interface{})
 	whereInAnd["hello"] = make([]interface{}, 0)
@@ -238,6 +236,7 @@ func TestMyMemSQL() {
 	//testx()
 
 }
+
 var tStart time.Time // get current time
 func main() {
 	tStart = time.Now() // get current time
@@ -251,8 +250,8 @@ func main() {
 		log.Info("一分钱测试导入结束 ", " 时间= "+time.Now().String(), " 耗时:"+elapsed.String())
 		fmt.Println("一分钱测试导入结束 ", " 时间= "+time.Now().String(), " 耗时:"+elapsed.String())
 	}()
-
-	TestMyMemSQL()
+	testMultiThread()
+	//TestMyMemSQL()
 
 }
 
@@ -293,4 +292,78 @@ func testx() {
 	}
 
 	fmt.Println(MapDepartTop)
+}
+
+func testMultiThread() {
+	colNameType := make(map[string]string)
+	colNameType["hello"] = "string"
+	colNameType["cnt"] = "int"
+	colNameType["id"] = "int64"
+	pT := CliffMemSQL.NewMemTable(colNameType)
+	writeCnt1 := 0
+	writeCnt2 := 0
+	go func() {
+		for i := 0; i < 100000; i++ {
+			insertRow := make(map[string]interface{})
+			insertRow["hello"] = "nihao"
+			insertRow["cnt"] = i
+			insertRow["id"] = int64(i * 100)
+			_, err := pT.InsertRow(insertRow)
+			if err != nil {
+				fmt.Println(err)
+			}
+			writeCnt1++
+		}
+		fmt.Println("w1 end")
+	}()
+	go func() {
+		for i := 0; i < 100000; i++ {
+			insertRow := make(map[string]interface{})
+			insertRow["hello"] = "nihao"
+			insertRow["cnt"] = i
+			insertRow["id"] = int64(i * 100)
+			_, err := pT.InsertRow(insertRow)
+			if err != nil {
+				fmt.Println(err)
+			}
+			writeCnt2++
+		}
+		fmt.Println("w2 end")
+	}()
+
+	queryCnt1 := 0
+	queryCnt2 := 0
+	go func() {
+		for i := 0; i < 100000; i++ {
+			whereMapIn := make(map[string][]interface{})
+			whereMapIn["hello"] = []interface{}{"nihao"}
+			whereMapIn["cnt"] = []interface{}{1, 2, 3, 4, 5, 15, 16, 17, 18, 19, 20}
+			whereMapIn["id"] = []interface{}{100, 200, 300, 400, 500, 800, 1000, 100, 200, 300, 400, 500, 800, 1000, 100, 200, 300, 400, 500, 800, 1000, 100, 200, 300, 400, 500, 800, 1000, 100, 200, 300, 400, 500, 800, 1000, 100, 200, 300, 400, 500, 800, 1000, 100, 200, 300, 400, 500, 800, 1000, 100, 200, 300, 400, 500, 800, 1000, 100, 200, 300, 400, 500, 800, 1000, 100, 200, 300, 400, 500, 800, 1000, 100, 200, 300, 400, 500, 800, 1000, 100, 200, 300, 400, 500, 800, 1000, 100, 200, 300, 400, 500, 800, 1000, 100, 200, 300, 400, 500, 800, 1000, 100, 200, 300, 400, 500, 800, 1000, 100, 200, 300, 400, 500, 800, 1000, 100, 200, 300, 400, 500, 800, 1000, 100, 200, 300, 400, 500, 800, 1000, 100, 200, 300, 400, 500, 800, 1000, 100, 200, 300, 400, 500, 800, 1000,}
+			_, err := pT.QueryTableInAnd(whereMapIn)
+			if err != nil {
+				fmt.Println(err)
+			}
+			queryCnt1++
+		}
+		fmt.Println("r1 end")
+	}()
+	go func() {
+		for i := 0; i < 100000; i++ {
+			whereMapIn := make(map[string][]interface{})
+			whereMapIn["hello"] = []interface{}{"nihao"}
+			whereMapIn["cnt"] = []interface{}{1, 2, 3, 4, 5, 15, 16, 17, 18, 19, 20}
+			whereMapIn["id"] = []interface{}{100, 200, 300, 400, 500, 800, 1000}
+			_, err := pT.QueryTableInAnd(whereMapIn)
+			if err != nil {
+				fmt.Println(err)
+			}
+			queryCnt2++
+		}
+		fmt.Println("r2 end")
+	}()
+	for i := 0; i < 100; i++ {
+		time.Sleep(time.Second)
+		fmt.Println(writeCnt1, writeCnt2, queryCnt1, queryCnt2)
+	}
+
 }
